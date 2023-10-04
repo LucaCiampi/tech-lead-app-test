@@ -1,4 +1,5 @@
 FROM node:alpine
 COPY . /app
 WORKDIR /app
-CMD node app.js
+RUN npm i
+CMD npm run start

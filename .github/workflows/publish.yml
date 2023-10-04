@@ -15,5 +15,5 @@ jobs:
 
     - name: Build the hello-docker Docker image
       run: |
-        docker build . --tag ghcr.io/deselikem/hello-docker-gcr-demo:latest
-        docker push ghcr.io/deselikem/hello-docker-gcr-demo:latest
+        docker build . --tag ghcr.io/lucaciampi/tech-lead-app-test:staging
+        docker push ghcr.io/lucaciampi/tech-lead-app-test:staging

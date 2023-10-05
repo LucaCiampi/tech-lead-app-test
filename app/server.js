@@ -2,7 +2,6 @@ const express = require('express');
 const favicon = require('serve-favicon');
 const path = require('path');
 require('dotenv').config();
-const listenForMessages = require('./listenForMessages.js');
 
 const app = express();
 
@@ -23,10 +22,5 @@ require('./route')(app);
 const port = process.env.PORT || 3000;
 app.server = app.listen(port);
 console.log(`listening on port ${port}`);
-
-// Luca
-const subscriptionNameOrId = process.env.SUBSCRIPTION_NAME || 'dmii2-1';
-const timeout = process.env.TIMEOUT || 60;
-listenForMessages(subscriptionNameOrId, timeout);
 
 module.exports = app;

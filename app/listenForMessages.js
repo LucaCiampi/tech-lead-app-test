@@ -33,12 +33,13 @@
 // [START pubsub_quickstart_subscriber]
 
 // Imports the Google Cloud client library
-const {PubSub} = require('@google-cloud/pubsub');
+const { PubSub } = require('@google-cloud/pubsub');
 
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub();
 
 function listenForMessages(subscriptionNameOrId, timeout) {
+  console.log('ok');
   // References an existing subscription
   const subscription = pubSubClient.subscription(subscriptionNameOrId);
 

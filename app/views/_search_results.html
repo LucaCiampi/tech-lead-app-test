@@ -26,6 +26,11 @@
   </div>
 </div>
 <button id="zipPhotos" class="btn btn-primary">Faire un zip</button>
+<% if (downloadLink) { %>
+<div id="downloadLink" class="hidden">
+  <a href="<%= downloadLink %>"><%= downloadLink %></a>
+</div>
+<% } %>
 <script>
   document.getElementById('zipPhotos').addEventListener('click', function() {
     const tags = new URLSearchParams(window.location.search).get('tags');
@@ -39,16 +44,7 @@
         }
         return response.blob();
       })
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'archive.zip';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-      })
+      .then(document.getElementById('downloadLink').classList.remove('hidden'))
       .catch(error => {
         console.error('Error:', error);
       });

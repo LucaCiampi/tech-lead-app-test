@@ -37,3 +37,6 @@ jobs:
 
     - name: Run lint and tests
       run: npm run lint && npm run jest
+
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v2

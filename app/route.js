@@ -6,11 +6,18 @@ const request = require('request');
 const Stream = require('stream');
 const moment = require('moment');
 const listenForMessages = require('./listenForMessages');
+const { PubSub } = require('@google-cloud/pubsub');
 
+const subscriptionNameOrId = process.env.SUBSCRIPTION_NAME || 'dmii2-1';
+const timeout = process.env.TIMEOUT || 60;
 function route(app) {
   app.get('/', async (req, res) => {
     const tags = req.query.tags;
     const tagmode = req.query.tagmode;
+
+    // Luca
+    listenForMessages(subscriptionNameOrId, timeout);
+    // End Luca
 
     const ejsLocalVariables = {
       tagsParameter: tags || '',
@@ -30,7 +37,6 @@ function route(app) {
       return res.render('index', ejsLocalVariables);
     }
 
-    // Ajout pour obtenir le lien de téléchargement signé
     const options = {
       action: 'read',
       expires:
@@ -53,6 +59,7 @@ function route(app) {
       .then(photos => {
         ejsLocalVariables.photos = photos;
         ejsLocalVariables.searchResults = true;
+
         return res.render('index', ejsLocalVariables);
       })
       .catch(error => {
@@ -90,6 +97,7 @@ function route(app) {
 
   app.post('/zip', (req, res) => {
     const tags = req.query.tags;
+    sendTopicToGCS(tags);
     const chunks = [];
 
     var zip = new ZipStream();
@@ -138,6 +146,35 @@ function route(app) {
         res.status(500).send('Internal Server Error');
       });
   });
+
+  async function sendTopicToGCS(topicNameOrId) {
+    // const projectId = subscriptionNameOrId;
+    const subscriptionName = subscriptionNameOrId;
+    // Instantiates a client
+    const pubsub = new PubSub();
+
+    // Creates a new topic
+    const [topic] = await pubsub.createTopic(topicNameOrId);
+    console.log(`Topic ${topic.name} created.`);
+
+    // Creates a subscription on that new topic
+    const [subscription] = await topic.createSubscription(subscriptionName);
+
+    // Receive callbacks for new messages on the subscription
+    subscription.on('message', message => {
+      console.log('Received message:', message.data.toString());
+      process.exit(0);
+    });
+
+    // Receive callbacks for errors on the subscription
+    subscription.on('error', error => {
+      console.error('Received error:', error);
+      process.exit(1);
+    });
+
+    // Send a message to the topic
+    topic.publishMessage({ data: Buffer.from('Test message!') });
+  }
 }
 
 module.exports = route;

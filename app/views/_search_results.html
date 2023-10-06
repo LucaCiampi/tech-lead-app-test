@@ -1,28 +1,85 @@
-<hr>
+<hr />
 
 <div class="panel panel-default search-results">
   <div class="panel-heading">
     <h3 class="panel-title">Search Results</h3>
   </div>
   <div class="panel-body">
-
     <% if (photos.length) { %>
 
-      <ul>
-        <% photos.forEach(function (photo) { %>
-          <li class="list-unstyled">
-            <a href="<%= photo.media.b %>" class="thumbnail">
-              <img src="<%= photo.media.t %>" alt="Photo - <%= photo.title %>"
-                title="<%= photo.title %>">
-            </a>
-          </li>
-        <% }) %>
-      </ul>
-
+    <ul>
+      <% photos.forEach(function (photo) { %>
+      <li class="list-unstyled">
+        <a href="<%= photo.media.b %>" class="thumbnail">
+          <img
+            src="<%= photo.media.t %>"
+            alt="Photo - <%= photo.title %>"
+            title="<%= photo.title %>"
+          />
+        </a>
+      </li>
+      <% }) %>
+    </ul>
     <% } else { %>
-      <div class="alert alert-info"><strong>No results</strong></div>
+    <div class="alert alert-info"><strong>No results</strong></div>
     <% } %>
-
   </div>
-
 </div>
+<button id="zipPhotos" class="btn btn-primary">Faire un zip</button>
+<button id="readZipPhotos" class="btn btn-primary">Lire les zip</button>
+<div id="linksContainer"></div>
+<% if (downloadLink) { %>
+<div id="downloadLink" class="hidden">
+  <a href="<%= downloadLink %>"><%= downloadLink %></a>
+</div>
+<% } %>
+<script>
+  document.getElementById('zipPhotos').addEventListener('click', function() {
+    const tags = new URLSearchParams(window.location.search).get('tags');
+    let fullName = window.localStorage.getItem('username');
+    let firstName = fullName ? fullName.split(' ')[0] : 'Unknown';
+
+    fetch('/zip?username=' + firstName + '&tags=' + encodeURIComponent(tags), {
+      method: 'POST'
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.text();
+      })
+      .then(downloadLink => {
+        document.getElementById('linksContainer').innerHTML = downloadLink;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+
+  /**
+   * Lecture des zip
+   */
+  document
+    .getElementById('readZipPhotos')
+    .addEventListener('click', function() {
+      const tags = new URLSearchParams(window.location.search).get('tags');
+      let fullName = window.localStorage.getItem('username');
+      let firstName = fullName ? fullName.split(' ')[0] : 'Unknown';
+
+      fetch('/zip?username=' + firstName, {
+        method: 'GET'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(linksHtml => {
+          document.getElementById('linksContainer').innerHTML = linksHtml;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+</script>

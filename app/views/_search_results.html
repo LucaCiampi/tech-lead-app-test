@@ -26,6 +26,7 @@
   </div>
 </div>
 <button id="zipPhotos" class="btn btn-primary">Faire un zip</button>
+<button id="readZipPhotos" class="btn btn-primary">Lire les zip</button>
 <% if (downloadLink) { %>
 <div id="downloadLink" class="hidden">
   <a href="<%= downloadLink %>"><%= downloadLink %></a>
@@ -53,4 +54,31 @@
         console.error('Error:', error);
       });
   });
+
+  /**
+   * Lecture des zip
+   */
+  document
+    .getElementById('readZipPhotos')
+    .addEventListener('click', function() {
+      const tags = new URLSearchParams(window.location.search).get('tags');
+      let fullName = window.localStorage.getItem('username');
+      let firstName = fullName ? fullName.split(' ')[0] : 'Unknown';
+
+      fetch('/zip?username=' + firstName, {
+        method: 'GET'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(downloadLink => {
+          window.open(downloadLink, '_blank');
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
 </script>

@@ -130,6 +130,39 @@ function route(app) {
       });
   });
 
+  app.get('/zip', ensureAuthenticated, async (req, res) => {
+    const username = req.query.username || 'Unknown';
+    const zipPathPrefix = `${username}/`;
+    const dmiiBucketName = process.env.STORAGE_BUCKET || 'dmii2023bucket';
+
+    try {
+      const bucket = storage.bucket(dmiiBucketName);
+
+      const [files] = await bucket.getFiles({
+        prefix: zipPathPrefix
+      });
+
+      if (files.length === 0) {
+        return;
+      }
+
+      const signedUrls = await Promise.all(
+        files.map(async file => {
+          const [url] = await file.getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 1000 * 60 * 60 // 1 hour expiration
+          });
+          return url;
+        })
+      );
+
+      res.send(signedUrls);
+    } catch (err) {
+      console.error('Error:', err);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
   app.get('/login', (req, res) => {
     res.render('login');
   });
@@ -164,17 +197,28 @@ function route(app) {
   }
 
   async function sendTopicToGCS(topicNameOrId) {
-    // const projectId = subscriptionNameOrId;
     const subscriptionName = subscriptionNameOrId;
-    // Instantiates a client
     const pubsub = new PubSub();
 
-    // Creates a new topic
-    const [topic] = await pubsub.createTopic(topicNameOrId);
-    console.log(`Topic ${topic.name} created.`);
+    let topic = pubsub.topic(topicNameOrId);
 
-    // Creates a subscription on that new topic
-    const [subscription] = await topic.createSubscription(subscriptionName);
+    // Check if the topic exists
+    const [exists] = await topic.exists();
+    if (!exists) {
+      // Create the topic if it doesn't exist
+      [topic] = await pubsub.createTopic(topicNameOrId);
+      console.log(`Topic ${topic.name} created.`);
+    } else {
+      console.log(`Topic ${topic.name} already exists.`);
+    }
+
+    // Check if the subscription exists
+    let subscription = topic.subscription(subscriptionName);
+    const [subExists] = await subscription.exists();
+    if (!subExists) {
+      // Create the subscription if it doesn't exist
+      [subscription] = await topic.createSubscription(subscriptionName);
+    }
 
     // Receive callbacks for new messages on the subscription
     subscription.on('message', message => {
@@ -212,13 +256,20 @@ function route(app) {
     }
   }
 
-  async function displayDownloadLink(res) {
-    const downloadLink = await getDownloadLink();
-    res.send(`
-      <script>
-          window.open('${downloadLink}', '_blank');
-      </script>
-    `);
+  async function fileExists(zipPath) {
+    try {
+      await storage
+        .bucket(process.env.STORAGE_BUCKET)
+        .file(zipPath + '.zip')
+        .getMetadata();
+      return true;
+    } catch (err) {
+      if (err.code === 404) {
+        return false;
+      } else {
+        throw err;
+      }
+    }
   }
 }
 

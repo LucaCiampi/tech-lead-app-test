@@ -27,6 +27,7 @@
 </div>
 <button id="zipPhotos" class="btn btn-primary">Faire un zip</button>
 <button id="readZipPhotos" class="btn btn-primary">Lire les zip</button>
+<div id="linksContainer"></div>
 <% if (downloadLink) { %>
 <div id="downloadLink" class="hidden">
   <a href="<%= downloadLink %>"><%= downloadLink %></a>
@@ -48,7 +49,7 @@
         return response.text();
       })
       .then(downloadLink => {
-        window.open(downloadLink, '_blank');
+        document.getElementById('linksContainer').innerHTML = downloadLink;
       })
       .catch(error => {
         console.error('Error:', error);
@@ -74,8 +75,8 @@
           }
           return response.text();
         })
-        .then(downloadLink => {
-          window.open(downloadLink, '_blank');
+        .then(linksHtml => {
+          document.getElementById('linksContainer').innerHTML = linksHtml;
         })
         .catch(error => {
           console.error('Error:', error);

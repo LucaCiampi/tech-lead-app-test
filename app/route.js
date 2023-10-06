@@ -150,13 +150,17 @@ function route(app) {
         files.map(async file => {
           const [url] = await file.getSignedUrl({
             action: 'read',
-            expires: Date.now() + 1000 * 60 * 60 // 1 hour expiration
+            expires: Date.now() + 1000 * 60 * 60
           });
           return url;
         })
       );
 
-      res.send(signedUrls);
+      const linksHtml = signedUrls
+        .map(url => `<a href="${url}" target="_blank">Download</a>`)
+        .join('<br>');
+
+      res.send(linksHtml);
     } catch (err) {
       console.error('Error:', err);
       res.status(500).send('Internal Server Error');

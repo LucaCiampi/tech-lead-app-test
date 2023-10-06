@@ -9,7 +9,7 @@ const { PubSub } = require('@google-cloud/pubsub');
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub();
 
-function listenForMessages(subscriptionNameOrId, timeout) {
+function listenForMessages(subscriptionNameOrId, timeout, callback) {
   // References an existing subscription
   const subscription = pubSubClient.subscription(subscriptionNameOrId);
 
@@ -20,6 +20,8 @@ function listenForMessages(subscriptionNameOrId, timeout) {
     console.log(`\tData: ${message.data}`);
     console.log(`\tAttributes: ${message.attributes}`);
     messageCount += 1;
+
+    callback();
 
     // "Ack" (acknowledge receipt of) the message
     message.ack();

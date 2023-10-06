@@ -42,9 +42,11 @@
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        return response.blob();
+        return response.text();
       })
-      .then(document.getElementById('downloadLink').classList.remove('hidden'))
+      .then(downloadLink => {
+        window.open(downloadLink, '_blank'); // This opens the download link in a new tab
+      })
       .catch(error => {
         console.error('Error:', error);
       });

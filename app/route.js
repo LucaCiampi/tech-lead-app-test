@@ -8,6 +8,28 @@ const moment = require('moment');
 const listenForMessages = require('./listenForMessages');
 const { PubSub } = require('@google-cloud/pubsub');
 
+// Firebase
+// const firebaseConfig = {
+//   apiKey: 'AIzaSyA7bgu7if0_0IzIWkbBr0lKFiClyu09mfA',
+//   authDomain: 'temporaryprojectdmii.firebaseapp.com',
+//   projectId: 'temporaryprojectdmii',
+//   storageBucket: 'temporaryprojectdmii.appspot.com',
+//   messagingSenderId: '414973090394',
+//   appId: '1:414973090394:web:288cbd655aa9521e291663'
+// };
+
+const admin = require('firebase-admin');
+const serviceAccount = require('../google-credentials.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://temporaryprojectdmii-default-rtdb.firebaseio.com/'
+});
+
+const db = admin.database();
+let storage = new Storage();
+// End Firebase
+
 const subscriptionNameOrId = process.env.SUBSCRIPTION_NAME || 'dmii2-1';
 const timeout = process.env.TIMEOUT || 60;
 function route(app) {
@@ -15,9 +37,11 @@ function route(app) {
     const tags = req.query.tags;
     const tagmode = req.query.tagmode;
 
-    // Luca
-    listenForMessages(subscriptionNameOrId, timeout);
-    // End Luca
+    listenForMessages(
+      subscriptionNameOrId,
+      timeout,
+      displayDownloadLink.bind(null, res)
+    );
 
     const ejsLocalVariables = {
       tagsParameter: tags || '',
@@ -37,23 +61,6 @@ function route(app) {
       return res.render('index', ejsLocalVariables);
     }
 
-    const options = {
-      action: 'read',
-      expires:
-        moment()
-          .add(2, 'days')
-          .unix() * 1000
-    };
-    try {
-      const signedUrls = await storage
-        .bucket(process.env.STORAGE_BUCKET)
-        .file('public/users/photos-archive.zip')
-        .getSignedUrl(options);
-      ejsLocalVariables.downloadLink = signedUrls[0];
-    } catch (err) {
-      console.error('Error fetching signed URL:', err);
-    }
-
     return photoModel
       .getFlickrPhotos(tags, tagmode)
       .then(photos => {
@@ -67,38 +74,10 @@ function route(app) {
       });
   });
 
-  let storage = new Storage();
-
-  function uploadFile(buffer, filename, profileBucket) {
-    const file = storage.bucket(profileBucket).file('public/users/' + filename);
-
-    const stream = file.createWriteStream({
-      metadata: {
-        contentType: 'application/zip',
-        cacheControl: 'private'
-      },
-      resumable: false
-    });
-
-    return new Promise((resolve, reject) => {
-      stream.on('error', err => {
-        reject(err);
-      });
-
-      stream.on('finish', () => {
-        resolve('Ok');
-      });
-
-      const bufferStream = new Stream.PassThrough();
-      bufferStream.end(buffer);
-      bufferStream.pipe(stream);
-    });
-  }
-
   app.post('/zip', (req, res) => {
     const tags = req.query.tags;
-    sendTopicToGCS(tags);
     const chunks = [];
+    const zipPath = `Luca/${Date.now()}/photos-archive`;
 
     var zip = new ZipStream();
 
@@ -106,17 +85,17 @@ function route(app) {
       chunks.push(chunk);
     });
 
-    zip.on('end', () => {
+    zip.on('end', async () => {
       const buffer = Buffer.concat(chunks);
       const dmiiBucketName = 'dmii2023bucket';
-      uploadFile(buffer, 'photos-archive.zip', dmiiBucketName)
-        .then(() => {
-          res.send('ZIP file uploaded to GCS!');
-        })
-        .catch(err => {
-          console.error('GCS Error:', err);
-          res.status(500).send('Internal Server Error during upload to GCS.');
-        });
+      try {
+        await uploadFile(buffer, zipPath, dmiiBucketName);
+        const downloadLink = await getDownloadLink(zipPath);
+        res.send(downloadLink);
+      } catch (err) {
+        console.error('Error:', err);
+        res.status(500).send('Internal Server Error');
+      }
     });
 
     photoModel
@@ -147,6 +126,35 @@ function route(app) {
       });
   });
 
+  function uploadFile(buffer, zipPath, profileBucket) {
+    const ref = db.ref(zipPath);
+    ref.set(true);
+    const file = storage.bucket(profileBucket).file(zipPath);
+
+    const stream = file.createWriteStream({
+      metadata: {
+        contentType: 'application/zip',
+        cacheControl: 'private'
+      },
+      resumable: false
+    });
+
+    return new Promise((resolve, reject) => {
+      stream.on('error', err => {
+        reject(err);
+      });
+
+      stream.on('finish', () => {
+        resolve('Ok');
+        getDownloadLink(zipPath);
+      });
+
+      const bufferStream = new Stream.PassThrough();
+      bufferStream.end(buffer);
+      bufferStream.pipe(stream);
+    });
+  }
+
   async function sendTopicToGCS(topicNameOrId) {
     // const projectId = subscriptionNameOrId;
     const subscriptionName = subscriptionNameOrId;
@@ -174,6 +182,36 @@ function route(app) {
 
     // Send a message to the topic
     topic.publishMessage({ data: Buffer.from('Test message!') });
+  }
+
+  async function getDownloadLink(zipPath) {
+    const options = {
+      action: 'read',
+      expires:
+        moment()
+          .add(2, 'days')
+          .unix() * 1000
+    };
+    try {
+      const signedUrls = await storage
+        .bucket(process.env.STORAGE_BUCKET)
+        .file(zipPath + '.zip')
+        .getSignedUrl(options);
+      return signedUrls[0];
+    } catch (err) {
+      console.error('Error fetching signed URL:', err);
+      throw err;
+    }
+  }
+
+  async function displayDownloadLink(res) {
+    console.log('ok');
+    const downloadLink = await getDownloadLink();
+    res.send(`
+      <script>
+          window.open('${downloadLink}', '_blank');
+      </script>
+    `);
   }
 }
 

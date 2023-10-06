@@ -1,7 +1,6 @@
 const formValidator = require('./form_validator');
 const photoModel = require('./photo_model');
 const ZipStream = require('zip-stream');
-const { Storage } = require('@google-cloud/storage');
 const request = require('request');
 const Stream = require('stream');
 const moment = require('moment');
@@ -9,15 +8,7 @@ const listenForMessages = require('./listenForMessages');
 const { PubSub } = require('@google-cloud/pubsub');
 
 // Firebase
-// const firebaseConfig = {
-//   apiKey: 'AIzaSyA7bgu7if0_0IzIWkbBr0lKFiClyu09mfA',
-//   authDomain: 'temporaryprojectdmii.firebaseapp.com',
-//   projectId: 'temporaryprojectdmii',
-//   storageBucket: 'temporaryprojectdmii.appspot.com',
-//   messagingSenderId: '414973090394',
-//   appId: '1:414973090394:web:288cbd655aa9521e291663'
-// };
-
+const { Storage } = require('@google-cloud/storage');
 const admin = require('firebase-admin');
 const serviceAccount = require('../google-credentials.json');
 
@@ -32,8 +23,18 @@ let storage = new Storage();
 
 const subscriptionNameOrId = process.env.SUBSCRIPTION_NAME || 'dmii2-1';
 const timeout = process.env.TIMEOUT || 60;
+
+// Middleware
+function ensureAuthenticated(req, res, next) {
+  // const currentUser = admin.auth().currentUser;
+  // if (!currentUser) {
+  //   return res.redirect('/login');
+  // }
+  next();
+}
+
 function route(app) {
-  app.get('/', async (req, res) => {
+  app.get('/', ensureAuthenticated, async (req, res) => {
     const tags = req.query.tags;
     const tagmode = req.query.tagmode;
 
@@ -74,7 +75,7 @@ function route(app) {
       });
   });
 
-  app.post('/zip', (req, res) => {
+  app.post('/zip', ensureAuthenticated, (req, res) => {
     const tags = req.query.tags;
     const chunks = [];
     const zipPath = `Luca/${Date.now()}/photos-archive`;
@@ -124,6 +125,10 @@ function route(app) {
         console.error('Error:', err);
         res.status(500).send('Internal Server Error');
       });
+  });
+
+  app.get('/login', (req, res) => {
+    res.render('login');
   });
 
   function uploadFile(buffer, zipPath, profileBucket) {

@@ -45,7 +45,7 @@
         return response.text();
       })
       .then(downloadLink => {
-        window.open(downloadLink, '_blank'); // This opens the download link in a new tab
+        window.open(downloadLink, '_blank');
       })
       .catch(error => {
         console.error('Error:', error);

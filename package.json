@@ -18,9 +18,11 @@
   "dependencies": {
     "@google-cloud/pubsub": "^4.0.6",
     "@google-cloud/storage": "^7.1.0",
+    "connect-session-firebase": "^11.0.0",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.8",
     "express": "~4.16.2",
+    "express-session": "^1.17.3",
     "firebase": "^10.4.0",
     "firebase-admin": "^11.11.0",
     "got": "^8.0.1",

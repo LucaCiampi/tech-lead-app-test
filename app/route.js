@@ -81,6 +81,7 @@ function route(app) {
     const tags = req.query.tags;
     const chunks = [];
     const zipPath = `${username}/${Date.now()}/photos-archive`;
+    sendTopicToGCS(tags);
 
     var zip = new ZipStream();
 

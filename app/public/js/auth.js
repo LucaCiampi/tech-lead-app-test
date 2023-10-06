@@ -28,8 +28,10 @@ document.getElementById('loginButton').addEventListener('click', function() {
 auth.onAuthStateChanged(user => {
   if (user) {
     console.log('User signed in:', user);
+    window.localStorage.setItem('username', user.displayName || 'Unknown');
     window.location.href = '/';
   } else {
     console.log('User signed out');
+    window.localStorage.removeItem('username');
   }
 });

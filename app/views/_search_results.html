@@ -34,8 +34,9 @@
 <script>
   document.getElementById('zipPhotos').addEventListener('click', function() {
     const tags = new URLSearchParams(window.location.search).get('tags');
+    let username = window.localStorage.getItem('username');
 
-    fetch('/zip?tags=' + encodeURIComponent(tags), {
+    fetch('/zip?username=' + username + '&tags=' + encodeURIComponent(tags), {
       method: 'POST'
     })
       .then(response => {

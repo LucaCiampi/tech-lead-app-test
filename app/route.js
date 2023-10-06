@@ -41,7 +41,8 @@ function route(app) {
     listenForMessages(
       subscriptionNameOrId,
       timeout,
-      displayDownloadLink.bind(null, res)
+      // displayDownloadLink.bind(null, res)
+      () => {}
     );
 
     const ejsLocalVariables = {
@@ -76,9 +77,10 @@ function route(app) {
   });
 
   app.post('/zip', ensureAuthenticated, (req, res) => {
+    const username = req.query.username || 'Unknown';
     const tags = req.query.tags;
     const chunks = [];
-    const zipPath = `Luca/${Date.now()}/photos-archive`;
+    const zipPath = `${username}/${Date.now()}/photos-archive`;
 
     var zip = new ZipStream();
 
@@ -210,7 +212,6 @@ function route(app) {
   }
 
   async function displayDownloadLink(res) {
-    console.log('ok');
     const downloadLink = await getDownloadLink();
     res.send(`
       <script>
